@@ -1,0 +1,513 @@
+
+options:
+	#---------------------------------------------------------------------------
+	#Logo will be displayed before each message!
+	logo: &b&lZombie Apocalypse&7»
+	Mod: true
+	
+	#-----------------
+	#Messages
+	#-----------------
+	summonmsg: &aYou have successfully summoned #Mob name will be added auto
+	cmdmessage: &aYou have recieved &6Reward Kit&a!
+	GameToken: &6&lGame Token
+	
+	#-----------------
+	#Enable/Disable
+	#-----------------
+	Tank: true
+	Speedy: true
+	Jumper: true
+	Splasher: true
+	Floater: true
+	Tower: true
+	Teleporter: true
+	
+	#-----------------
+	#Names:
+	#-----------------
+	TankName: &c&lTank
+	SpeedyName: &2&lSpeedy
+	JumperName: &7Jumper
+	SplasherName: &cSplasher
+	FloaterName: &7&lFloater
+	TowerName: &2&lTower
+	TeleporterName: &8&lTeleporter
+	StarterName: &4Start Kit
+
+#Zombies: Tank, Speedy, Jumper, Splasher, Floater, Tower
+#
+#Tank - High Defence, Strong Attack, Very Slow
+#Speedy - Low Defence, Low Attack, Very Fast
+#Jumper - Medium Defence, Regular Attack, Jumps 5 Blocks High
+#Splasher - One Hit Kill But Apply Negative Effect On The Attacker
+#Floater - One Hit Kill But Apply Levitation Effect On The Attacker
+#Tower - Tower Of 6 Zombies One Above The Other
+
+function countDownPro(t: integer):
+	loop all players:
+		set {kills::%loop-player's uuid%} to 0
+		set slot 0 of loop-player's inventory to 32 carrots named "{@StarterName}"
+		set slot 1 of loop-player's inventory to stone axe named "{@StarterName}"
+		set slot 2 of loop-player's inventory to 32 torches named "{@StarterName}"
+		set loop-player's helmet to leather helmet named "{@StarterName}"
+		set loop-player's boots to leather boots named "{@StarterName}"
+	execute console command "team join Alive @a"
+	execute console command "bossbar set zombieapocalypse:apocalypsebar-world players @a"
+	execute console command "bossbar set zombieapocalypse:apocalypsebar-world visible false"
+	execute console command "bossbar set minecraft:countdown players @a"
+	execute console command "bossbar set minecraft:countdown max %{_t}%"
+	execute console command "gamemode survival @a"
+	execute console command "worldborder set 500"
+	send title "&6&lLet The Count Down Begin" with subtitle "&eYou Have %{_t}% Seconds To Find Shelter" to all players
+	set {full} to {_t}
+	execute console command "bossbar set minecraft:countdown visible true"
+	loop {_t} times:
+		wait 1 seconds
+		set {new} to {full} -1 
+		set {full} to {new}
+		execute console command "bossbar set minecraft:countdown value %{new}%"
+		if {new} = 60:
+			send title "&2&l60 Seconds Remaining" to all players for 1 second
+		if {new} = 30:
+			send title "&2&l30 Seconds Remaining" to all players for 1 second
+		if {new} < 11:
+			if {new} = 10:
+				send title "&4&l10 Seconds Remaining" to all players for 1 second
+			broadcast "{@logo} &c%{new}% Second Remaining"
+			if {new} = 0:
+				execute console command "bossbar set minecraft:countdown visible false"
+				execute console command "bossbar set zombieapocalypse:apocalypsebar-world name ""Zombie Apocalypse Started"""
+				execute console command "bossbar set zombieapocalypse:apocalypsebar-world visible true"
+				execute console command "difficulty hard"
+				execute console command "time set midnight"
+				stop
+
+function toomanyzombies():
+	execute console command "difficulty peaceful"
+	execute console command "gamemode creative @a"
+	execute console command "bossbar set zombieapocalypse:apocalypsebar-world name ""Zombie Apocalypse Ended"""
+	execute console command "za setup off"
+	loop {kills::*}:
+		set {kills::%loop-value%} to 0
+
+on join:
+	if {toggle.za} is true:
+		if {kills::%player's uuid%} = 2:
+			wait 2 seconds
+			execute console command "gamemode spectator %player%"
+
+on inventory click:
+	if {toggle.za} is true:
+		if clicked slot is 9:
+			if player has gold nugget named "{@GameToken}":
+				cancel event
+
+on death of player:
+	if {toggle.za} is true:
+		if {@Mod} is true:
+			if player has gold nugget named "{@GameToken}":
+				remove gold nugget named "{@GameToken}" from the drops
+				remove 32 carrots named "{@StarterName}" from the drops
+				remove 32 torches named "{@StarterName}" from the drops
+				if {kills::%player's uuid%} = 0:
+					add 1 to {kills::%player's uuid%}
+					execute console command "team join Danger %player%"
+					stop
+				if {kills::%player's uuid%} = 1:
+					add 1 to {kills::%player's uuid%}
+					execute console command "team join Dead %player%"
+					execute console command "gamemode spectator %player%"
+
+on player respawn:
+	if {toggle.za} is true:
+		if {@Mod} is true:
+			if {kills::%player's uuid%} = 1:
+				set slot 0 of player's inventory to 32 carrots named "{@StarterName}"
+				set slot 1 of player's inventory to stone axe named "{@StarterName}"
+				set slot 2 of player's inventory to 32 torches named "{@StarterName}"
+				set player's helmet to leather helmet named "{@StarterName}"
+				set player's boots to leather boots named "{@StarterName}"
+				set slot 9 of player's inventory to gold nugget named "{@GameToken}"
+
+on death of zombie:
+	if {toggle.za} is true:
+		if {@Mod} is true:
+			if {activation.global} is "true":
+				if name of victim is "{@TeleporterName}":
+					clear drops
+					chance of 50%:
+						drop 2 ender pearl
+						stop
+					chance of 50%:
+						drop 1 ender pearl
+						stop
+				clear drops
+
+at 12:00:
+	if {toggle.za} is true:
+		if {@Mod} is true:
+			execute console command "time set night"
+
+on spawn of skeleton or creeper or enderman or spider:
+	if {toggle.za} is true:
+		if {@Mod} is true:
+			if event-world is "world":
+				set {_y} to y coords of event-entity
+				cancel event
+				chance of 60%:
+					spawn a zombie at event-entity
+					if {@Jumper} is true:
+						chance of 20%:
+							set displayname of last spawned zombie to "{@JumperName}"
+							# helmet
+							set last spawned zombie's helmet to chainmail helmet
+							# chestplate
+							# leggings
+							# boots
+							set boots of last spawned zombie to chainmail boots
+							# setup
+							set tool of last spawned zombie to stone axe of sharpness 2
+							set max health of last spawned zombie to 20
+							set health of last spawned zombie to 15
+							apply jump boost 8 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Tank} is true:
+						chance of 7%:
+							set displayname of last spawned zombie to "{@TankName}"
+							# helmet
+							# chestplate
+							set chestplate of last spawned zombie to diamond chestplate
+							# leggings
+							set leggings of last spawned zombie to diamond leggings
+							# boots
+							set boots of last spawned zombie to diamond boots
+							# setup
+							set tool of last spawned zombie to iron axe of sharpness 1
+							set max health of last spawned zombie to 25
+							set health of last spawned zombie to 20
+							apply strength 1 to the last spawned zombie for 9999 minutes
+							apply slowness 2 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Speedy} is true:
+						chance of 10%:
+							spawn a baby zombie at event-entity
+							set display name of last spawned zombie to "{@SpeedyName}"
+							set the last spawned zombie's max health to 5
+							set health of last spawned zombie to 5
+							set last spawned zombie's chestplate to leather chestplate
+							apply speed 1 to the last spawned zombie for 9999 minutes
+							apply weakness 2 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Splasher} is true:
+						chance of 30%:
+							set display name of last spawned zombie to "{@SplasherName}"
+							stop
+					if {@Tower} is true:
+						chance of 3%:
+							set {_y} to y coords of event-entity
+							set {_x} to x coords of event-entity
+							set {_z} to z coords of event-entity
+							execute console command "summon zombie %{_x}% %{_y}% %{_z}% {Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie}]}]}]}]}]}"
+							stop
+					if {@Teleporter} is true:
+						chance of 5%:
+							set display name of last spawned zombie to "{@TeleporterName}"
+							set helmet of last spawned zombie to ("Violit" parsed as an offline player)'s skull
+							stop
+					if {@Floater} is true:
+						chance of 30%:
+							set display name of last spawned zombie to "{@FloaterName}"
+							stop
+			if event-world is "world_the_end":
+				set {_y} to y coords of event-entity
+				cancel event
+				chance of 40%:
+					spawn a zombie at event-entity
+					if {@Jumper} is true:
+						chance of 20%:
+							set displayname of last spawned zombie to "{@JumperName}"
+							# helmet
+							set last spawned zombie's helmet to chainmail helmet
+							# chestplate
+							# leggings
+							# boots
+							set boots of last spawned zombie to chainmail boots
+							# setup
+							set tool of last spawned zombie to stone axe of sharpness 2
+							set max health of last spawned zombie to 20
+							set health of last spawned zombie to 15
+							apply jump boost 8 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Tank} is true:
+						chance of 7%:
+							set displayname of last spawned zombie to "{@TankName}"
+							# helmet
+							# chestplate
+							set chestplate of last spawned zombie to diamond chestplate
+							# leggings
+							set leggings of last spawned zombie to diamond leggings
+							# boots
+							set boots of last spawned zombie to diamond boots
+							# setup
+							set tool of last spawned zombie to iron axe of sharpness 1
+							set max health of last spawned zombie to 25
+							set health of last spawned zombie to 20
+							apply strength 1 to the last spawned zombie for 9999 minutes
+							apply slowness 2 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Speedy} is true:
+						chance of 10%:
+							spawn a baby zombie at event-entity
+							set display name of last spawned zombie to "{@SpeedyName}"
+							set the last spawned zombie's max health to 5
+							set health of last spawned zombie to 5
+							set last spawned zombie's chestplate to leather chestplate
+							apply speed 1 to the last spawned zombie for 9999 minutes
+							apply weakness 2 to the last spawned zombie for 9999 minutes
+							stop
+					if {@Splasher} is true:
+						chance of 30%:
+							set display name of last spawned zombie to "{@SplasherName}"
+							stop
+					if {@Tower} is true:
+						chance of 3%:
+							set {_y} to y coords of event-entity
+							set {_x} to x coords of event-entity
+							set {_z} to z coords of event-entity
+							execute console command "summon zombie %{_x}% %{_y}% %{_z}% {Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie}]}]}]}]}]}"
+							stop
+					if {@Teleporter} is true:
+						chance of 5%:
+							set display name of last spawned zombie to "{@TeleporterName}"
+							set helmet of last spawned zombie to ("Violit" parsed as an offline player)'s skull
+							stop
+					if {@Floater} is true:
+						chance of 30%:
+							set display name of last spawned zombie to "{@FloaterName}"
+							stop
+
+on bed enter:
+	if {toggle.za} is true:
+		if player has gold nugget named "{@GameToken}":
+			cancel event
+
+on damage:
+	if {toggle.za} is true:
+		victim is a zombie
+		attacker is a player
+		if name of victim is "{@SplasherName}":
+			damage victim by 10 heart
+			chance of 20%:
+				apply blindness to the attacker for 5 seconds
+				stop
+			chance of 20%:
+				apply poison to the attacker for 5 seconds
+				stop
+			chance of 15%:
+				apply nausea 2 to the attacker for 10 seconds
+				stop
+			chance of 25%:
+				apply hunger 2 to the attacker for 5 seconds
+				stop
+			chance of 15%:
+				apply weakness 2 to the attacker for 10 seconds
+				stop
+			chance of 5%:
+				apply slowness 2 to the attacker for 10 seconds
+				stop
+
+		if name of victim is "{@FloaterName}":
+			damage victim by 10 heart
+			apply levitation to the attacker for 6 seconds
+			stop
+		if name of victim is "{@TeleporterName}":
+			loop blocks in radius 5 of attacker:
+				if loop-block is air:
+					add loop-block to {_b::*}
+			teleport victim to random element out of {_b::*}
+		
+command /za [<text>] [<text>]:
+	trigger:	
+		if arg 1 is not set:
+			message "&7&m-------&r&7[&bZombie Apocalypse Commands&7&m]-------"
+			message "&c/za summon <Mob name> -> summon specific mob"
+			message "&c/za summon list -> show the list of all the mobs"			
+			message "&c/za stop -> stop the zombies"
+			message "&c/za setup <on/off> -> setting up the game on or off"
+			message "&c/za countdown <seconds> -> start the countdown"
+			message "&7&m-------&r&7[&bZombie Apocalypse Commands&7&m]-------"
+		if arg 1 is "help":
+			message "&7&m-------&r&7[&bZombie Apocalypse Commands&7&m]-------"
+			message "&c/za summon <Mob name> -> summon specific mob"
+			message "&c/za summon list -> show the list of all the mobs"			
+			message "&c/za stop -> stop the zombies"
+			message "&c/za setup <on/off> -> setting up the game on or off"
+			message "&c/za countdown <seconds> -> start the countdown"
+			message "&c/za help -> show all plugin commands"
+			message "&7&m-------&r&7[&bZombie Apocalypse Commands&7&m]-------"
+		if arg 1 is "stop":
+			toomanyzombies()
+		if arg 1 is "countdown":
+			if {toggle.za} is true:
+				if arg 2 is not set:
+					countDownPro(120)
+					stop
+				countDownPro(arg 2 parsed as integer)	
+			else:
+				message "&4Zombie Apocalypse Is Not Enabled"
+
+		if arg 1 is "setup":
+			if {toggle.za} is true:
+				if arg 2 is "on":
+					loop all players:
+						set slot 9 of loop-player's inventory to gold nugget named "{@GameToken}"
+					set {_w} to world("world")
+					set {_x} to x coords of spawn
+					set {_z} to z coords of spawn
+					execute console command "worldborder center %{_x}% %{_z}%"
+					teleport all players to spawn
+					execute console command "worldborder set 15"
+					execute console command "bossbar add countdown ""Count Down"""
+					execute console command "bossbar set countdown color yellow"
+					execute console command "bossbar set countdown style notched_12"
+					execute console command "bossbar set minecraft:countdown players @a"
+					execute console command "bossbar add zombieapocalypse:apocalypsebar-world ""Zombie Apocalypse Started"""
+					execute console command "bossbar set zombieapocalypse:apocalypsebar-world color purple"
+					execute console command "bossbar set zombieapocalypse:apocalypsebar-world style notched_12"
+					execute console command "bossbar set zombieapocalypse:apocalypsebar-world players @a"
+					execute console command "bossbar set zombieapocalypse:apocalypsebar-world visible false"
+					execute console command "team add Alive"
+					execute console command "team modify Alive color green"
+					execute console command "team modify Alive prefix ""[Alive] """
+					execute console command "team add Dead"
+					execute console command "team modify Dead color red"
+					execute console command "team modify Dead prefix ""[Dead] """
+					execute console command "team add Danger"
+					execute console command "team modify Danger color yellow"
+					execute console command "team modify Danger prefix ""[Danger] """
+					execute console command "difficulty peaceful"
+				if arg 2 is "off":
+					set {activation.global} to "false"
+					execute console command "worldborder set 30000000"
+					execute console command "bossbar remove countdown"
+					execute console command "bossbar remove zombieapocalypse:apocalypsebar-world"
+					execute console command "bossbar remove countdown"
+					execute console command "team remove Alive"
+					execute console command "team remove Dead"
+					execute console command "team remove Danger"
+					loop all players:
+						remove gold nugget named "{@GameToken}" from loop-player's inventory
+			else:
+				message "&4Zombie Apocalypse Is Not Enabled"
+		if arg 1 is "summon":
+			if arg 2 is "tank":
+				spawn a zombie at player's location
+				# helmet
+				# chestplate
+				set chestplate of last spawned zombie to diamond chestplate
+				# leggings
+				set leggings of last spawned zombie to diamond leggings
+				# boots
+				set boots of last spawned zombie to diamond boots
+				# setup
+				set tool of last spawned zombie to iron axe of sharpness 1
+				set max health of last spawned zombie to 25
+				set health of last spawned zombie to 20
+				set displayname of last spawned zombie to "{@TankName}"
+				apply strength 1 to the last spawned zombie for 9999 minutes
+				apply slowness 2 to the last spawned zombie for 9999 minutes
+				send "{@logo} {@summonmsg} {@TankName}" to player
+				stop
+			if arg 2 is "speedy":
+				spawn a baby zombie at player's location
+				set display name of last spawned zombie to "{@SpeedyName}"
+				set the last spawned zombie's max health to 5
+				set health of last spawned zombie to 5
+				set last spawned zombie's chestplate to leather chestplate
+				set tool of last spawned zombie to wooden shovel
+				apply speed 2 to the last spawned zombie for 9999 minutes
+				apply weakness 1 to the last spawned zombie for 9999 minutes
+				send "{@logo} {@summonmsg} {@SpeedyName}" to player
+			if arg 2 is "jumper":
+				spawn a zombie at player's location
+				# helmet
+				set last spawned zombie's helmet to chainmail helmet
+				# chestplate
+				# leggings
+				# boots
+				set boots of last spawned zombie to chainmail boots
+				# setup
+				set tool of last spawned zombie to stone axe of sharpness 2
+				set max health of last spawned zombie to 20
+				set health of last spawned zombie to 15
+				set displayname of last spawned zombie to "{@JumperName}"
+				apply jump boost 8 to the last spawned zombie for 9999 minutes
+				send "{@logo} {@summonmsg} {@JumperName}" to player
+			if arg 2 is "splasher":
+				spawn a zombie at player's location
+				set display name of last spawned zombie to "{@SplasherName}"
+				send "{@logo} {@summonmsg} {@SplasherName}" to player
+			if arg 2 is "floater":
+				spawn a zombie at player's location
+				set display name of last spawned zombie to "{@FloaterName}"
+				send "{@logo} {@summonmsg} {@FloaterName}" to player
+			if arg 2 is "tower":
+				set {_y} to y coords of player
+				set {_x} to x coords of player
+				set {_z} to z coords of player
+				execute console command "summon zombie %{_x}% %{_y}% %{_z}% {Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie,Passengers:[{id:zombie}]}]}]}]}]}"
+				send "{@logo} {@summonmsg} {@TowerName}" to player
+			if arg 2 is "teleporter":
+				spawn a zombie at player's location
+				set display name of last spawned zombie to "{@TeleporterName}"
+				set helmet of last spawned zombie to ("Violit" parsed as an offline player)'s skull
+				send "{@logo} {@summonmsg} {@TeleporterName}" to player
+			if arg 2 is "list":
+				message "&7&m----------&r&7[&bMoreMobs&7&m]----------"
+				message "&c/za summon &btank"
+				message "&c/za summon &bjumper"
+				message "&c/za summon &bspeedy"
+				message "&c/za summon &bsplasher"
+				message "&c/za summon &bfloater"
+				message "&c/za summon &btower"
+				message "&c/za summon &bteleporter"
+				message "&7&m----------&r&7[&bMoreMobs&7&m]----------"
+			if arg 2 is not set:
+				message "&7&m----------&r&7[&bMoreMobs&7&m]----------"
+				message "&c/za summon &btank"
+				message "&c/za summon &bjumper"
+				message "&c/za summon &bspeedy"
+				message "&c/za summon &bsplasher"
+				message "&c/za summon &bfloater"
+				message "&c/za summon &btower"
+				message "&c/za summon &bteleporter"
+				message "&7&m----------&r&7[&bMoreMobs&7&m]----------"
+
+command /spec [<OfflinePlayer>]:
+	trigger:
+		if {toggle.za} is true:
+			if {kills::%player's uuid%} = 2:
+				execute console command "teleport %player% %OfflinePlayer-argument%"
+				message "&eYou are now spectating &4%OfflinePlayer-argument%"
+				wait 2 seconds
+				execute console command "gamemode spectator %player%"
+			else:
+				message "&eYou are not on your 3rd death yet"
+		else:
+			message "&4Zombie Apocalypse Is Not Enabled"
+
+command /latein [<OfflinePlayer>]:
+	trigger:
+		if {toggle.za} is true:
+			set {_player} to OfflinePlayer-argument's uuid
+			set {kills::%{_player}%} to 0
+			set slot 0 of OfflinePlayer-argument's inventory to 32 carrots named "{@StarterName}"
+			set slot 1 of OfflinePlayer-argument's inventory to stone axe named "{@StarterName}"
+			set slot 2 of OfflinePlayer-argument's inventory to 32 torches named "{@StarterName}"
+			set OfflinePlayer-argument's helmet to leather helmet named "{@StarterName}"
+			set OfflinePlayer-argument's boots to leather boots named "{@StarterName}"
+			set slot 9 of OfflinePlayer-argument's inventory to gold nugget named "{@GameToken}"
+			execute console command "team join Alive %OfflinePlayer-argument%"
+		else:
+			message "&4Zombie Apocalypse Is Not Enabled"
